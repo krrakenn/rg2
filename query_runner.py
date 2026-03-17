@@ -2,12 +2,13 @@ import requests
 import time
 import pandas as pd
 import os
+import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
 
 REDASH_URL = "https://redash.intermesh.net"
-API_KEY = os.getenv("API_KEY")
+API_KEY = st.secrets["API_KEY"]
 DATA_SOURCE_ID = 8
 
 headers = {
