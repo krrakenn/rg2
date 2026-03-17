@@ -1,12 +1,13 @@
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
+import streamlit as st
 from datetime import datetime, timedelta
 import json
 import time
 import sqlite3
 
-SERVICE_ACCOUNT_FILE = "service_account.json"
+SERVICE_ACCOUNT_FILE = st.secrets["SERVICE_ACCOUNT_JSON"]
 DB_FILE = "automation.db"
 
 scopes = [
