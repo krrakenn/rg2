@@ -2,12 +2,13 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 import streamlit as st
+from utils import get_secret
 load_dotenv()
 
 def merge_queries_llm(queries):
 
     client = OpenAI(
-        api_key=st.secrets["LLM_API_KEY"],
+        api_key=get_secret("LLM_API_KEY"),
         base_url="https://imllm.intermesh.net/v1"
     )
 
