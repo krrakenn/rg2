@@ -7,7 +7,6 @@ import json
 import time
 import sqlite3
 
-SERVICE_ACCOUNT_FILE = st.secrets["SERVICE_ACCOUNT_JSON"]
 DB_FILE = "automation.db"
 
 scopes = [
@@ -148,7 +147,7 @@ def automate_report(sheet_url, result_df, sql_query, refresh_frequency, query_ty
     )
 
     creds = Credentials.from_service_account_info(
-        json.loads(SERVICE_ACCOUNT_FILE),
+        st.secrets["gcp_service_account"],
         scopes=scopes
     )
     client = gspread.authorize(creds)
