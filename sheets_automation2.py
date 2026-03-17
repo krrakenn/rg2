@@ -134,7 +134,7 @@ def generate_column_header(query_type, frequency):
     
     return today.strftime("%Y-%m-%d")
 
-
+init_db()
 def automate_report(sheet_url, result_df, sql_query, refresh_frequency, query_type="no_date"):
     init_db()
     layout_mapping = generate_layout_mapping(result_df)
