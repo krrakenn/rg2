@@ -4,11 +4,12 @@ import pandas as pd
 import streamlit as st
 from datetime import datetime, timedelta
 import json
+from utils import get_secret
 import time
 import sqlite3
 
 DB_FILE = "automation.db"
-
+service_account_info = get_secret("SERVICE_ACCOUNT_JSON")
 scopes = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
@@ -145,9 +146,10 @@ def automate_report(sheet_url, result_df, sql_query, refresh_frequency, query_ty
         layout_mapping,
         query_type
     )
-
+    if isinstance(service_account_info, str):
+        service_account_info = json.loads(service_account_info)
     creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"],
+        service_account_info,
         scopes=scopes
     )
     client = gspread.authorize(creds)
