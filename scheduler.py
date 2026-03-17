@@ -138,26 +138,17 @@ def run_automation(automation):
         return {"status": "failed", "auto_id": auto_id, "error": str(e)}
 
 
-def scheduler_loop():
+def run_scheduler_once():
     init_db()
-    logger.info("Scheduler started")
-    
-    while True:
-        try:
-            due_automations = get_due_automations()
-            
-            if due_automations:
-                logger.info(f"Found {len(due_automations)} automations to run")
-                
-                for automation in due_automations:
-                    run_automation(automation)
-            
-            time.sleep(300)
-            
-        except Exception as e:
-            logger.error(f"Scheduler error: {str(e)}")
-            time.sleep(300)
+    logger.info("Running scheduler cycle")
+    try:
+        due_automations = get_due_automations()
+        for automation in due_automations:
+            run_automation(automation)
+
+    except Exception as e:
+        logger.error(f"Scheduler error: {str(e)}")
 
 
 if __name__ == "__main__":
-    scheduler_loop()        
+    run_scheduler_once()
