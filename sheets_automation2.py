@@ -14,7 +14,8 @@ scopes = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
 ]
-
+def get_automation_sheet(client, automation_sheet_url):
+    return client.open_by_url(automation_sheet_url).worksheet("Automations")
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
