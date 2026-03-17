@@ -8,7 +8,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 REDASH_URL = "https://redash.intermesh.net"
-API_KEY = st.secrets["API_KEY"]
+from utils import get_secret
+
+API_KEY = get_secret("API_KEY")
 DATA_SOURCE_ID = 8
 
 headers = {
