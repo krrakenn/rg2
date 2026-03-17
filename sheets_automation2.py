@@ -147,8 +147,8 @@ def automate_report(sheet_url, result_df, sql_query, refresh_frequency, query_ty
         query_type
     )
 
-    creds = Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE,
+    creds = Credentials.from_service_account_info(
+        json.loads(SERVICE_ACCOUNT_FILE),
         scopes=scopes
     )
     client = gspread.authorize(creds)
