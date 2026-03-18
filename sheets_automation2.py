@@ -263,14 +263,8 @@ def get_service_account_info():
 # --------------------------
 
 def get_gspread_client():
-    credentials_info = get_service_account_info()
-
-    # Fix newline issue (important if loaded from env)
-    if "private_key" in credentials_info:
-        credentials_info["private_key"] = credentials_info["private_key"].replace("\\n", "\n")
-
     creds = Credentials.from_service_account_info(
-        credentials_info,
+        st.secrets["gcp_service_account"],  # 👈 EXACTLY like your working code
         scopes=scopes
     )
     return gspread.authorize(creds)
