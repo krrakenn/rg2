@@ -201,10 +201,13 @@ from google.oauth2.service_account import Credentials
 import pandas as pd
 from datetime import datetime, timedelta
 import json
-from utils import get_secret
 import time
+import os
 
-service_account_info = get_secret("[gcp_service_account]")
+# --------------------------
+# CONFIGURATION / SECRETS
+# --------------------------
+
 AUTOMATION_SHEET_URL = "https://docs.google.com/spreadsheets/d/1pmHIwxTZA2fwfewUBAtW7-UE4Nq3YU1r2DEw5qaQ-XM/edit?gid=0#gid=0"
 AUTOMATION_WORKSHEET_TITLE = "Automations"
 AUTOMATION_HEADERS = [
@@ -223,14 +226,48 @@ scopes = [
     "https://www.googleapis.com/auth/drive"
 ]
 
+# --------------------------
+# SECRET LOADER
+# --------------------------
+
+def get_service_account_info():
+    """
+    Load service account credentials from:
+    1. Streamlit secrets (preferred)
+    2. Environment variable SERVICE_ACCOUNT_JSON
+    """
+    # Streamlit secrets
+    try:
+        import streamlit as st
+        if "gcp_service_account" in st.secrets:
+            return dict(st.secrets["gcp_service_account"])
+        if "SERVICE_ACCOUNT_JSON" in st.secrets:
+            val = st.secrets["SERVICE_ACCOUNT_JSON"]
+            return json.loads(val) if isinstance(val, str) else val
+    except Exception:
+        pass  # Not running in Streamlit
+
+    # Environment variable (cron / GitHub Actions)
+    env_val = os.getenv("SERVICE_ACCOUNT_JSON")
+    if env_val:
+        try:
+            return json.loads(env_val)
+        except json.JSONDecodeError:
+            raise ValueError("Invalid JSON in SERVICE_ACCOUNT_JSON env variable")
+
+    # Fail if no secret found
+    raise ValueError("Service account credentials not found in secrets or environment variables")
+
+# --------------------------
+# GSPREAD CLIENT
+# --------------------------
 
 def get_gspread_client():
-    if not service_account_info:
-        raise ValueError("Missing SERVICE_ACCOUNT_JSON secret")
+    credentials_info = get_service_account_info()
 
-    credentials_info = service_account_info
-    if isinstance(credentials_info, str):
-        credentials_info = json.loads(credentials_info)
+    # Fix newline issue (important if loaded from env)
+    if "private_key" in credentials_info:
+        credentials_info["private_key"] = credentials_info["private_key"].replace("\\n", "\n")
 
     creds = Credentials.from_service_account_info(
         credentials_info,
@@ -238,10 +275,13 @@ def get_gspread_client():
     )
     return gspread.authorize(creds)
 
+# --------------------------
+# AUTOMATION WORKSHEET
+# --------------------------
 
 def get_automation_worksheet():
     if not AUTOMATION_SHEET_URL:
-        raise ValueError("Missing AUTOMATION_SHEET_URL secret")
+        raise ValueError("Missing AUTOMATION_SHEET_URL")
 
     client = get_gspread_client()
     spreadsheet = client.open_by_url(AUTOMATION_SHEET_URL)
@@ -261,10 +301,12 @@ def get_automation_worksheet():
 
     return worksheet
 
-
 def init_db():
     return get_automation_worksheet()
 
+# --------------------------
+# AUTOMATION OPERATIONS
+# --------------------------
 
 def store_automation(sheet_url, sql_query, refresh_frequency, layout_mapping, query_type="no_date"):
     worksheet = get_automation_worksheet()
@@ -287,7 +329,6 @@ def store_automation(sheet_url, sql_query, refresh_frequency, layout_mapping, qu
 
     return automation_id
 
-
 def list_automations():
     worksheet = get_automation_worksheet()
     records = worksheet.get_all_records()
@@ -299,12 +340,14 @@ def list_automations():
 
     return automations
 
-
 def update_automation_last_run(row_number):
     worksheet = get_automation_worksheet()
     now = datetime.now().isoformat(timespec="seconds")
     worksheet.update(f"G{row_number}:I{row_number}", [[now, worksheet.cell(row_number, 8).value, now]])
 
+# --------------------------
+# LAYOUT / REPORT HELPERS
+# --------------------------
 
 def generate_layout_mapping(df):
     mapping = {}
@@ -332,30 +375,23 @@ def generate_layout_mapping(df):
 
     return mapping
 
-
 def get_existing_metrics(ws):
     col = ws.col_values(1)
     metric_rows = {}
-
     for i, val in enumerate(col):
         if i == 0:
             continue
         metric_rows[val] = i + 1
-
     return metric_rows
-
 
 def get_existing_dates(ws):
     row = ws.row_values(1)
     date_cols = {}
-
     for i, val in enumerate(row):
         if i == 0:
             continue
         date_cols[val] = i + 1
-
     return date_cols
-
 
 def generate_column_header(query_type, frequency):
     today = datetime.now()
@@ -363,29 +399,27 @@ def generate_column_header(query_type, frequency):
     if query_type == "no_date":
         if frequency.lower() == "daily":
             return today.strftime("%Y-%m-%d")
-        
         elif frequency.lower() == "weekly":
             week_num = today.isocalendar()[1]
             month_name = today.strftime("%b")
             return f"{month_name} Week {week_num}"
-        
         elif frequency.lower() == "monthly":
             return today.strftime("%B")
-    
     elif query_type == "with_date":
         if frequency.lower() == "daily":
             return today.strftime("%Y-%m-%d")
-        
         elif frequency.lower() == "weekly":
             start_date = (today - timedelta(days=7)).strftime("%d")
             end_date = today.strftime("%d")
             month_name = today.strftime("%b")
             return f"{month_name} {start_date}-{end_date}"
-        
         elif frequency.lower() == "monthly":
             return today.strftime("%B")
-    
     return today.strftime("%Y-%m-%d")
+
+# --------------------------
+# REPORT WRITING
+# --------------------------
 
 def write_report_to_sheet(sheet_url, result_df, refresh_frequency, query_type="no_date"):
     layout_mapping = generate_layout_mapping(result_df)
@@ -433,6 +467,9 @@ def write_report_to_sheet(sheet_url, result_df, refresh_frequency, query_type="n
         "status": "success"
     }
 
+# --------------------------
+# AUTOMATE REPORT
+# --------------------------
 
 def automate_report(sheet_url, result_df, sql_query, refresh_frequency, query_type="no_date", register_automation=True):
     init_db()
