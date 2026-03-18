@@ -232,40 +232,37 @@ scopes = [
 # --------------------------
 
 def get_service_account_info():
-    """
-    Load service account credentials from:
-    1. Streamlit secrets (preferred)
-    2. Environment variable SERVICE_ACCOUNT_JSON
-    """
-    # Streamlit secrets
+    import os
+
+    # ✅ PRIORITY 1: Streamlit
     try:
         import streamlit as st
         if "gcp_service_account" in st.secrets:
             return dict(st.secrets["gcp_service_account"])
-        if "SERVICE_ACCOUNT_JSON" in st.secrets:
-            val = st.secrets["SERVICE_ACCOUNT_JSON"]
-            return json.loads(val) if isinstance(val, str) else val
     except Exception:
-        pass  # Not running in Streamlit
+        pass
 
-    # Environment variable (cron / GitHub Actions)
+    # ✅ PRIORITY 2: ENV (GitHub)
     env_val = os.getenv("SERVICE_ACCOUNT_JSON")
     if env_val:
-        try:
-            return json.loads(env_val)
-        except json.JSONDecodeError:
-            raise ValueError("Invalid JSON in SERVICE_ACCOUNT_JSON env variable")
+        info = json.loads(env_val)
 
-    # Fail if no secret found
-    raise ValueError("Service account credentials not found in secrets or environment variables")
+        # ONLY here we fix newline
+        if "private_key" in info:
+            info["private_key"] = info["private_key"].replace("\\n", "\n")
 
+        return info
+
+    raise ValueError("No credentials found")
 # --------------------------
 # GSPREAD CLIENT
 # --------------------------
 
 def get_gspread_client():
+    credentials_info = get_service_account_info()
+
     creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"],  # 👈 EXACTLY like your working code
+        credentials_info,
         scopes=scopes
     )
     return gspread.authorize(creds)
