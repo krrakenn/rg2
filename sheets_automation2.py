@@ -234,6 +234,8 @@ scopes = [
 
 def get_service_account_info():
     service_account_info = get_secret("SERVICE_ACCOUNT_JSON")
+     if not service_account_info:
+        raise ValueError("SERVICE_ACCOUNT_JSON not found in secrets or env")
     if isinstance(service_account_info, str):
         service_account_info = json.loads(service_account_info)
     return service_account_info
