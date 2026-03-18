@@ -204,7 +204,7 @@ import json
 from utils import get_secret
 import time
 
-service_account_info = get_secret("SERVICE_ACCOUNT_JSON")
+service_account_info = get_secret("[gcp_service_account]")
 AUTOMATION_SHEET_URL = "https://docs.google.com/spreadsheets/d/1pmHIwxTZA2fwfewUBAtW7-UE4Nq3YU1r2DEw5qaQ-XM/edit?gid=0#gid=0"
 AUTOMATION_WORKSHEET_TITLE = "Automations"
 AUTOMATION_HEADERS = [
