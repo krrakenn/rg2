@@ -232,41 +232,18 @@ scopes = [
 # --------------------------
 
 def get_service_account_info():
-    import os
-
-    # ✅ PRIORITY 1: Streamlit
-    try:
-        import streamlit as st
-        if "gcp_service_account" in st.secrets:
-            return dict(st.secrets["gcp_service_account"])
-    except Exception:
-        pass
-
-    # ✅ PRIORITY 2: ENV (GitHub)
-    env_val = os.getenv("SERVICE_ACCOUNT_JSON")
-    if env_val:
-        info = json.loads(env_val)
-
-        # ONLY here we fix newline
-        if "private_key" in info:
-            info["private_key"] = info["private_key"].replace("\\n", "\n")
-
-        return info
-
-    raise ValueError("No credentials found")
-# --------------------------
-# GSPREAD CLIENT
-# --------------------------
+    service_account_info = get_secret("SERVICE_ACCOUNT_JSON")
+    if isinstance(service_account_info, str):
+        service_account_info = json.loads(service_account_info)
+    return service_account_info
 
 def get_gspread_client():
     credentials_info = get_service_account_info()
-
     creds = Credentials.from_service_account_info(
         credentials_info,
         scopes=scopes
     )
     return gspread.authorize(creds)
-
 # --------------------------
 # AUTOMATION WORKSHEET
 # --------------------------
